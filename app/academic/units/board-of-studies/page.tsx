@@ -2,26 +2,73 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import UnitGallery from "../UnitGallery";
 
-interface Unit {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+
+interface StaffMember {
+  id: number;
+  name: string;
+  position?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  photo?: string | null;
+}
+
+interface CourseSummary {
+  id: number;
+  title: string;
+  short_code?: string;
+  slug: string;
+  image?: string | null;
+  level?: string;
+  duration?: string;
+  description?: string | null;
+}
+
+interface GalleryItem {
+  id: number;
+  title: string | null;
+  category: string | null;
+  description: string | null;
+  cover_image: string;
+  year: number | null;
+  month: string | null;
+}
+
+interface UnitDetail {
   id: number;
   slug: string;
   name: string;
   short_code: string;
   short_description: string;
+  description: string | null;
+  is_unit: boolean;
+  is_engineering: boolean;
   logo: string | null;
   banner_image: string | null;
+  vision: string | null;
+  mission: string | null;
+  staff: StaffMember[];
+  courses: CourseSummary[];
+  researches: unknown[];
+  gallery: GalleryItem[];
 }
 
-async function getBoardOfStudies(): Promise<Unit | null> {
+function imageUrl(path: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${API_BASE}/${path.replace(/^\/+/, "")}`;
+}
+
+async function getBoardOfStudies(): Promise<UnitDetail | null> {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/units`, {
+    const res = await fetch(`${API_BASE}/api/departments/board-of-studies`, {
       cache: "no-store",
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const units: Unit[] = json?.data?.units?.data ?? [];
-    return units.find((u) => u.slug === "board-of-studies") ?? null;
+    return json?.data?.department ?? null;
   } catch {
     return null;
   }
@@ -31,12 +78,8 @@ export default async function BoardOfStudiesPage() {
   const unit = await getBoardOfStudies();
   if (!unit) return notFound();
 
-  const bannerUrl = unit.banner_image
-    ? `${process.env.NEXT_PUBLIC_API_URL}/storage/${unit.banner_image}`
-    : null;
-  const logoUrl = unit.logo
-    ? `${process.env.NEXT_PUBLIC_API_URL}/storage/${unit.logo}`
-    : null;
+  const bannerUrl = imageUrl(unit.banner_image);
+  const logoUrl = imageUrl(unit.logo);
 
   return (
     <>
@@ -58,16 +101,24 @@ export default async function BoardOfStudiesPage() {
       >
         <div className="relative z-10">
           <div className="text-[13px] text-white/65 mb-3">
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
+            <Link href="/" className="hover:text-white transition-colors">
+              Home
+            </Link>
             <span className="mx-1.5">›</span>
-            <Link href="/academic" className="hover:text-white transition-colors">Academic</Link>
+            <Link href="/academic" className="hover:text-white transition-colors">
+              Academic
+            </Link>
             <span className="mx-1.5">›</span>
             <span className="text-white">{unit.name}</span>
           </div>
 
           <div className="w-[60px] h-[60px] rounded-2xl bg-white/10 text-white flex items-center justify-center text-[26px] mx-auto mb-4 overflow-hidden">
             {logoUrl ? (
-              <img src={logoUrl} alt={unit.name} className="w-full h-full object-contain p-1" />
+              <img
+                src={logoUrl}
+                alt={unit.name}
+                className="w-full h-full object-contain p-1"
+              />
             ) : (
               <i className="fas fa-book-open"></i>
             )}
@@ -77,33 +128,131 @@ export default async function BoardOfStudiesPage() {
             {unit.short_code}
           </span>
 
-          <h1 className="text-white font-bold" style={{ fontSize: "clamp(24px,4vw,38px)" }}>
+          <h1
+            className="text-white font-bold"
+            style={{ fontSize: "clamp(24px,4vw,38px)" }}
+          >
             {unit.name}
           </h1>
-          <p className="text-white/70 text-[14px] max-w-[500px] mx-auto mt-3 leading-[1.6]">
-            {unit.short_description}
-          </p>
+          {unit.short_description && (
+            <p className="text-white/70 text-[14px] max-w-[500px] mx-auto mt-3 leading-[1.6]">
+              {unit.short_description}
+            </p>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <main className="max-w-[900px] mx-auto px-6 py-16">
-        <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-8 shadow-sm">
+      <main className="max-w-[1300px] mx-auto px-6 py-16">
+        {/* Overview */}
+        <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
           <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-3">
-            Overview
+            Discription
           </div>
           <p className="text-[#4b5563] text-[15px] leading-7">
-            {unit.short_description}
+            {unit.description ?? unit.short_description}
           </p>
-          <div className="mt-6 flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide">
-              Short Code:
-            </span>
-            <span className="bg-[#eff6ff] text-[#2563b0] text-[12px] font-bold px-3 py-1 rounded-full">
-              {unit.short_code}
-            </span>
-          </div>
+          
         </div>
+
+        {/* Vision */}
+        {unit.vision && (
+          <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
+            <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-3">
+              Vision
+            </div>
+            <p className="text-[#4b5563] text-[15px] leading-7">{unit.vision}</p>
+          </div>
+        )}
+
+        {/* Mission */}
+        {unit.mission && (
+          <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
+            <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-3">
+              Mission
+            </div>
+            <p className="text-[#4b5563] text-[15px] leading-7">{unit.mission}</p>
+          </div>
+        )}
+
+        {/* Staff */}
+        {unit.staff && unit.staff.length > 0 && (
+          <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
+            <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-5">
+              Staff Members
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {unit.staff.map((s) => {
+                const photoUrl = imageUrl(s.photo ?? null);
+                return (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-4 p-4 rounded-xl border border-[#f0f4fb] bg-[#f8faff]"
+                  >
+                    <div className="w-[48px] h-[48px] rounded-full bg-[#dbeafe] text-[#2563b0] flex items-center justify-center font-bold text-[16px] shrink-0 overflow-hidden">
+                      {photoUrl ? (
+                        <img
+                          src={photoUrl}
+                          alt={s.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        s.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[#1e3a5f] text-[14px]">
+                        {s.name}
+                      </div>
+                      {s.position && (
+                        <div className="text-[12px] text-[#6b7280]">{s.position}</div>
+                      )}
+                      {s.email && (
+                        <a
+                          href={`mailto:${s.email}`}
+                          className="text-[12px] text-[#2563b0] hover:underline"
+                        >
+                          {s.email}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Courses */}
+        {unit.courses && unit.courses.length > 0 && (
+          <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
+            <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-5">
+              Courses
+            </div>
+            <div className="flex flex-col gap-3">
+              {unit.courses.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/academic/courses/${c.slug}`}
+                  className="flex items-center justify-between p-4 rounded-xl border border-[#e5eaf3] hover:border-[#2563b0] hover:bg-[#f8faff] transition-all group"
+                >
+                  <div>
+                    <div className="font-medium text-[#1e3a5f] text-[14px] group-hover:text-[#2563b0]">
+                      {c.title}
+                    </div>
+                    {c.level && (
+                      <div className="text-[12px] text-[#6b7280] mt-0.5">{c.level}</div>
+                    )}
+                  </div>
+                  <i className="fas fa-arrow-right text-[#2563b0] text-[12px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gallery */}
+        <UnitGallery gallery={unit.gallery} />
 
         <Link
           href="/academic"

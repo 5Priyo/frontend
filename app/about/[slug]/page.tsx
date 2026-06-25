@@ -14,60 +14,75 @@ function resolveImage(path: string | null | undefined): string {
 }
 
 // ===== PAGE META =====
+// IMPORTANT — confirmed from actual API data:
+// Director/Former-Director records do NOT use category: "director".
+// Their `category` is "non-academic" (same as other admin staff), and the
+// real distinguishing field is `position` (e.g. "Former Director") or
+// `subcategory` (e.g. "Former Director" — same string, used as a label).
+// `position` filter on the backend is an EXACT match
+// (`where('position', $position)`), so these need to equal the DB value
+// character-for-character, not just contain it.
+// If a "current Director" page is still empty, that's because no staff
+// row exists yet with position "Director" — that's a data gap, add the
+// row via the dashboard, not a frontend bug.
 const pageMeta: Record<string, {
   title: string;
   subtitle: string;
   icon: string;
   description: string;
-  // how to filter from /api/staffs
-  filter: { type: "category+subcategory"; category: string; subcategory: string }
-         | { type: "position"; keyword: string };
+  filter: { category?: string; subcategory?: string; position?: string };
 }> = {
   "director": {
     title: "Director",
     subtitle: "Executive Leadership",
     icon: "fa-landmark",
     description: "The Director provides strategic academic and administrative leadership for University College of Jaffna, operating under the University of Jaffna to uphold institutional excellence.",
-    filter: { type: "category+subcategory", category: "director", subcategory: "current" },
+    filter: { position: "Director" },
   },
   "former-director": {
     title: "Former Directors",
     subtitle: "Legacy of Leadership",
     icon: "fa-history",
     description: "We honour the former Directors whose vision and dedication have shaped University College of Jaffna into the institution it is today.",
-    filter: { type: "category+subcategory", category: "director", subcategory: "former" },
+    filter: { position: "Former Director" },
   },
   "assistant-director": {
     title: "Assistant Director",
     subtitle: "Deputy Academic Leadership",
     icon: "fa-user-tie",
     description: "The Assistant Director supports the Director in overseeing academic programmes, faculty coordination, and institutional development initiatives.",
-    filter: { type: "position", keyword: "Assistant Director" },
+    filter: { position: "Assistant Director" },
   },
   "assistant-registrar": {
     title: "Assistant Registrar",
     subtitle: "Administrative Support",
     icon: "fa-pen-nib",
     description: "The Assistant Registrar assists in managing student records, admissions, examinations, and official institutional correspondence.",
-    filter: { type: "position", keyword: "Assistant Registrar" },
+    filter: { position: "Assistant Registrar" },
   },
   "assistant-bursar": {
     title: "Assistant Bursar",
     subtitle: "Financial Operations",
     icon: "fa-coins",
     description: "The Assistant Bursar supports the financial operations of University College of Jaffna, including fee collection, payroll coordination, and financial reporting.",
-    filter: { type: "position", keyword: "Assistant Bursar" },
+    filter: { position: "Assistant Bursar" },
   },
 };
 
 // ===== TYPES =====
+// NOTE: subcategory and several other fields can be null in the real API
+// response, so they must be typed as nullable. "units" was also missing
+// from the original type even though the API returns it.
+type Department = { id: number; name: string; short_code: string; role_type?: string | null };
+type Unit = { id: number; name: string; short_code: string; role_type?: string | null };
+
 type Staff = {
   id: number;
   slug: string;
   name: string;
   position: string;
   category: string;
-  subcategory: string;
+  subcategory: string | null;
   photo: string | null;
   email: string | null;
   phone: string | null;
@@ -76,7 +91,8 @@ type Staff = {
   research_gate: string | null;
   google_scholar: string | null;
   joined_date: string | null;
-  departments: { id: number; name: string; short_code: string }[];
+  departments: Department[];
+  units?: Unit[];
 };
 
 async function fetchPeople(slug: string): Promise<Staff[]> {
@@ -84,22 +100,23 @@ async function fetchPeople(slug: string): Promise<Staff[]> {
   if (!meta) return [];
 
   try {
-    const res = await fetch(`${API_URL}/staffs?per_page=200`, { cache: "no-store" });
+    // Build query string from the filter object so it's sent straight to
+    // StaffController@index — this now matches the backend's actual
+    // `where('category', $category)` / `where('subcategory', $subcategory)`
+    // / `where('position', $position)` exact-match behavior exactly,
+    // instead of re-implementing (and potentially mismatching) that logic
+    // on the frontend.
+    const qs = new URLSearchParams({ per_page: "200" });
+    if (meta.filter.category) qs.set("category", meta.filter.category);
+    if (meta.filter.subcategory) qs.set("subcategory", meta.filter.subcategory);
+    if (meta.filter.position) qs.set("position", meta.filter.position);
+
+    const res = await fetch(`${API_URL}/staffs?${qs.toString()}`, { cache: "no-store" });
     if (!res.ok) return [];
     const json = await res.json();
-    const all: Staff[] = json?.data?.staffs?.data ?? [];
-
-    if (meta.filter.type === "category+subcategory") {
-      const { category, subcategory } = meta.filter;
-      return all.filter(
-        (s) => s.category === category && s.subcategory === subcategory
-      );
-    }
-
-    // position keyword match
-    const { keyword } = meta.filter;
-    return all.filter((s) => s.position.toLowerCase().includes(keyword.toLowerCase()));
-  } catch {
+    return json?.data?.staffs?.data ?? [];
+  } catch (err) {
+    console.error("fetchPeople failed:", err);
     return [];
   }
 }
@@ -145,7 +162,6 @@ export default async function PeoplesSlugPage({
           <p className="text-white/60 text-base md:text-lg leading-relaxed mb-6">
             {meta.subtitle}
           </p>
-          {/* Breadcrumb */}
           <div className="flex items-center justify-center gap-2 text-sm text-white/40">
             <Link href="/" className="hover:text-[#e85d14] transition-colors">Home</Link>
             <i className="fas fa-chevron-right text-xs" />
@@ -204,7 +220,6 @@ export default async function PeoplesSlugPage({
                         </div>
                       </div>
                     )}
-                    {/* hover overlay */}
                     <div className="absolute inset-0 bg-[#0a1628]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <span className="text-white text-xs font-semibold bg-[#e85d14] px-4 py-2 rounded-full">
                         View Profile
@@ -221,48 +236,49 @@ export default async function PeoplesSlugPage({
                       {person.position}
                     </p>
 
-                    {/* Contact row */}
+                    {/* Contact row — these are now non-interactive indicators
+                        since the card itself is one big Link (a clickable
+                        <a> can't contain another clickable <a> reliably) */}
                     <div className="flex items-center justify-center gap-2">
                       {person.email && (
-                        <a
-                          href={`mailto:${person.email}`}
-                          onClick={(e) => e.preventDefault() /* handled by parent Link */}
-                          className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#e85d14] hover:text-white text-gray-500 flex items-center justify-center transition-colors text-xs"
+                        <span
+                          className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs"
                           title={person.email}
                         >
                           <i className="fas fa-envelope" />
-                        </a>
+                        </span>
                       )}
                       {person.phone && (
-                        <a
-                          href={`tel:${person.phone}`}
-                          onClick={(e) => e.preventDefault()}
-                          className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#e85d14] hover:text-white text-gray-500 flex items-center justify-center transition-colors text-xs"
+                        <span
+                          className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs"
                           title={person.phone}
                         >
                           <i className="fas fa-phone" />
-                        </a>
+                        </span>
                       )}
                       {person.linkedin && (
-                        <a
-                          href={person.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-7 h-7 rounded-full bg-gray-100 hover:bg-[#0077b5] hover:text-white text-gray-500 flex items-center justify-center transition-colors text-xs"
+                        <span
+                          className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs"
                           title="LinkedIn"
                         >
                           <i className="fab fa-linkedin-in" />
-                        </a>
+                        </span>
                       )}
                     </div>
 
-                    {/* Dept badge */}
-                    {person.departments?.[0] && (
-                      <div className="mt-3">
-                        <span className="text-[10px] font-bold bg-[#0f2a5e]/8 text-[#0f2a5e] border border-[#0f2a5e]/15 px-2.5 py-1 rounded-full">
-                          {person.departments[0].short_code}
-                        </span>
+                    {/* Dept / Unit badge */}
+                    {(person.departments?.[0] || person.units?.[0]) && (
+                      <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                        {person.departments?.[0] && (
+                          <span className="text-[10px] font-bold bg-[#0f2a5e]/8 text-[#0f2a5e] border border-[#0f2a5e]/15 px-2.5 py-1 rounded-full">
+                            {person.departments[0].short_code}
+                          </span>
+                        )}
+                        {person.units?.[0] && (
+                          <span className="text-[10px] font-bold bg-[#e85d14]/8 text-[#e85d14] border border-[#e85d14]/15 px-2.5 py-1 rounded-full">
+                            {person.units[0].short_code}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

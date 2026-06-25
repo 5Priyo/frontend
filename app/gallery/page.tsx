@@ -75,6 +75,7 @@ interface Album {
   category: string;
   month: number;
   year: number;
+  department_code: string | null;
   cover_image: string | null;
   image_count: number;
 }
@@ -84,9 +85,10 @@ interface AlbumDetail extends Album {
 }
 
 interface FilterState {
-  year: number;
+  year: number | "all";
   month: number | "all";
   event: string;
+  department: string;
 }
 
 interface EventOption {
@@ -97,14 +99,15 @@ interface EventOption {
 
 function normalizeAlbum(raw: any): Album {
   return {
-    id:          Number(raw.id),
-    title:       String(raw.title ?? ""),
-    description: String(raw.description ?? ""),
-    category:    String(raw.category ?? raw.event ?? "cultural"),
-    month:       parseMonth(raw.month),
-    year:        Number(raw.year),
-    cover_image: buildImageUrl(raw.cover_image ?? raw.image ?? null),
-    image_count: Number(raw.image_count ?? 0),
+    id:               Number(raw.id),
+    title:            String(raw.title ?? ""),
+    description:      String(raw.description ?? ""),
+    category:         String(raw.category ?? raw.event ?? "cultural"),
+    month:            parseMonth(raw.month),
+    year:             Number(raw.year),
+    department_code:  raw.department_code ? String(raw.department_code) : null,
+    cover_image:      buildImageUrl(raw.cover_image ?? raw.image ?? null),
+    image_count:      Number(raw.image_count ?? 0),
   };
 }
 
@@ -119,7 +122,7 @@ function AlbumCard({ album, onClick }: { album: Album; onClick: () => void }) {
     >
       {/* Cover */}
       <div
-        className="relative h-[210px] overflow-hidden flex items-center justify-center shrink-0"
+        className="relative h-[150px] overflow-hidden flex items-center justify-center shrink-0"
         style={{ background: pal.bg }}
       >
         {album.cover_image ? (
@@ -133,41 +136,48 @@ function AlbumCard({ album, onClick }: { album: Album; onClick: () => void }) {
         {/* Dark gradient overlay always present */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
-        <span className="text-[3rem] z-10 select-none drop-shadow-lg">{pal.icon}</span>
+        <span className="text-[2rem] z-10 select-none drop-shadow-lg">{pal.icon}</span>
 
         {/* Image count badge */}
-        <span className="absolute bottom-3 right-3 z-10 bg-black/50 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-white/10">
-          <i className="fas fa-images text-[10px] text-[#e85d14]"></i>
-          {album.image_count} photos
+        <span className="absolute bottom-2 right-2 z-10 bg-black/50 backdrop-blur-sm text-white text-[9px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/10">
+          <i className="fas fa-images text-[8px] text-[#e85d14]"></i>
+          {album.image_count}
         </span>
 
         {/* Year badge */}
-        <span className="absolute top-3 left-3 z-10 bg-[#0f2a5e]/80 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-white/10">
+        <span className="absolute top-2 left-2 z-10 bg-[#0f2a5e]/80 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md border border-white/10">
           {album.year}
         </span>
 
+        {/* Department badge */}
+        {album.department_code && (
+          <span className="absolute top-2 right-2 z-10 bg-white/15 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-md border border-white/10">
+            {album.department_code}
+          </span>
+        )}
+
         {/* Hover overlay CTA */}
         <div className="absolute inset-0 z-10 bg-[#e85d14]/0 group-hover:bg-[#e85d14]/10 transition-colors duration-300 flex items-center justify-center">
-          <span className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 bg-[#e85d14] text-white text-[12px] font-bold px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg">
-            <i className="fas fa-eye text-[11px]"></i> View Album
+          <span className="opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 bg-[#e85d14] text-white text-[10px] font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+            <i className="fas fa-eye text-[9px]"></i> View
           </span>
         </div>
       </div>
 
       {/* Info */}
-      <div className="p-4 flex flex-col gap-2 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold uppercase tracking-wide text-[#e85d14] bg-orange-50 px-2.5 py-0.5 rounded-full">
+      <div className="p-2.5 flex flex-col gap-1.5 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[8px] font-bold uppercase tracking-wide text-[#e85d14] bg-orange-50 px-2 py-0.5 rounded-full">
             {pal.label}
           </span>
-          <span className="text-[10px] text-gray-400 flex items-center gap-1">
-            <i className="fas fa-calendar-alt text-[9px]"></i>
-            {FP_MONTH_FULL[album.month]} {album.year}
+          <span className="text-[9px] text-gray-400 flex items-center gap-1">
+            <i className="fas fa-calendar-alt text-[8px]"></i>
+            {FP_MONTH_SHORT[album.month]} {album.year}
           </span>
         </div>
-        <div className="text-[14px] font-semibold text-[#0b1730] leading-snug">{album.title}</div>
+        <div className="text-[12px] font-semibold text-[#0b1730] leading-snug line-clamp-1">{album.title}</div>
         {album.description && (
-          <div className="text-[12px] text-gray-400 line-clamp-2 leading-relaxed">{album.description}</div>
+          <div className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">{album.description}</div>
         )}
       </div>
     </div>
@@ -220,6 +230,12 @@ function AlbumLightbox({ album, onClose }: { album: AlbumDetail; onClose: () => 
               <span>{pal.icon} {pal.label}</span>
               <span className="w-1 h-1 rounded-full bg-white/20 inline-block"></span>
               <span>{FP_MONTH_FULL[album.month]} {album.year}</span>
+              {album.department_code && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-white/20 inline-block"></span>
+                  <span>{album.department_code}</span>
+                </>
+              )}
               <span className="w-1 h-1 rounded-full bg-white/20 inline-block"></span>
               <span>{images.length} photos</span>
             </div>
@@ -326,13 +342,16 @@ function AlbumLightbox({ album, onClose }: { album: AlbumDetail; onClose: () => 
 export default function GalleryPage() {
   const [allAlbums, setAllAlbums]           = useState<Album[]>([]);
   const [events, setEvents]                 = useState<EventOption[]>([{ key: "all", label: "All Events", icon: "🏠" }]);
+  const [departments, setDepartments]       = useState<string[]>([]);
   const [loading, setLoading]               = useState(true);
   const [loadError, setLoadError]           = useState<string | null>(null);
   const [latestDataYear, setLatestDataYear] = useState<number>(FP_CURRENT_YEAR);
-  const [fpState, setFpState]               = useState<FilterState>({ year: FP_CURRENT_YEAR, month: "all", event: "all" });
-  const [fpTmp, setFpTmp]                   = useState<FilterState>({ year: FP_CURRENT_YEAR, month: "all", event: "all" });
-  const [curModal, setCurModal]             = useState<"year" | "month" | "event" | null>(null);
+  const [fpState, setFpState]               = useState<FilterState>({ year: "all", month: "all", event: "all", department: "all" });
+  const [fpTmp, setFpTmp]                   = useState<FilterState>({ year: "all", month: "all", event: "all", department: "all" });
+  const [curModal, setCurModal]             = useState<"year" | "month" | "event" | "department" | null>(null);
   const [search, setSearch]                 = useState("");
+  const PAGE_SIZE = 10;
+  const [page, setPage]                     = useState(1);
 
   const [openAlbum, setOpenAlbum]           = useState<AlbumDetail | null>(null);
   const [albumLoading, setAlbumLoading]     = useState(false);
@@ -390,12 +409,15 @@ export default function GalleryPage() {
           }),
         ]);
 
+        // Optional department filter — backend already returns the list of
+        // department codes that have galleries under filters.departments
+        const deptList: string[] = payload?.data?.filters?.departments ?? [];
+        setDepartments(deptList);
+
         const availableYears: number[] = payload?.data?.filters?.available_years ?? albums.map((d) => d.year);
         if (availableYears.length > 0) {
           const newest = Math.max(...availableYears);
           setLatestDataYear(newest);
-          setFpState((s) => ({ ...s, year: newest }));
-          setFpTmp((s) => ({ ...s, year: newest }));
         }
       })
       .catch((err) => {
@@ -428,38 +450,57 @@ export default function GalleryPage() {
     }
   }
 
-  const years = [...new Set([latestDataYear, ...allAlbums.map((d) => d.year)])].sort((a, b) => b - a);
-  const monthsForYear = (y: number) => new Set(allAlbums.filter((d) => d.year === y).map((d) => d.month));
-  const countEvent = (k: string, y: number) =>
+  const years = [...new Set(allAlbums.map((d) => d.year))].sort((a, b) => b - a);
+  const monthsForYear = (y: number | "all") =>
+    new Set(allAlbums.filter((d) => y === "all" || d.year === y).map((d) => d.month));
+  const countEvent = (k: string, y: number | "all") =>
     k === "all"
-      ? allAlbums.filter((d) => d.year === y).length
-      : allAlbums.filter((d) => d.category === k && d.year === y).length;
+      ? allAlbums.filter((d) => y === "all" || d.year === y).length
+      : allAlbums.filter((d) => d.category === k && (y === "all" || d.year === y)).length;
+  const countDept = (code: string, y: number | "all") =>
+    code === "all"
+      ? allAlbums.filter((d) => y === "all" || d.year === y).length
+      : allAlbums.filter((d) => d.department_code === code && (y === "all" || d.year === y)).length;
 
   const visible = allAlbums
     .filter(
       (d) =>
-        d.year === fpState.year &&
+        (fpState.year === "all" || d.year === fpState.year) &&
         (fpState.month === "all" || d.month === fpState.month) &&
         (fpState.event === "all" || d.category === fpState.event) &&
+        (fpState.department === "all" || d.department_code === fpState.department) &&
         (!search ||
           d.title.toLowerCase().includes(search.toLowerCase()) ||
           d.description.toLowerCase().includes(search.toLowerCase()))
     )
-    .sort((a, b) => a.month - b.month || a.id - b.id);
+    .sort((a, b) => b.year - a.year || a.month - b.month || a.id - b.id);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = visible.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Whenever the filter set or search term changes, jump back to page 1
+  useEffect(() => {
+    setPage(1);
+  }, [fpState.year, fpState.month, fpState.event, fpState.department, search]);
 
   function applyModal() { setFpState({ ...fpTmp }); setCurModal(null); }
-  function openModal(type: "year" | "month" | "event") {
+  function openModal(type: "year" | "month" | "event" | "department") {
     setFpTmp({ ...fpState });
     setCurModal(curModal === type ? null : type);
   }
   function clearAll() {
-    const reset = { year: latestDataYear, month: "all" as const, event: "all" };
+    const reset: FilterState = { year: "all", month: "all", event: "all", department: "all" };
     setFpState(reset);
     setFpTmp(reset);
     setCurModal(null);
   }
 
-  const hasActiveFilters = fpState.month !== "all" || fpState.event !== "all" || fpState.year !== latestDataYear;
+  const hasActiveFilters =
+    fpState.year !== "all" ||
+    fpState.month !== "all" ||
+    fpState.event !== "all" ||
+    fpState.department !== "all";
 
   return (
     <>
@@ -534,9 +575,9 @@ export default function GalleryPage() {
               <span>
                 <strong className="text-[#0b1730] font-semibold">{visible.length}</strong> albums
               </span>
-              {fpState.year === latestDataYear && (
+              {fpState.year === "all" && (
                 <span className="bg-[#e85d14]/10 text-[#e85d14] text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide">
-                  ✦ Latest
+                  ✦ All Years
                 </span>
               )}
             </div>
@@ -550,11 +591,13 @@ export default function GalleryPage() {
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-[12px] font-semibold transition-all duration-150 ${
                 curModal === "year"
                   ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm"
+                  : fpState.year !== "all"
+                  ? "bg-orange-50 text-[#e85d14] border-[#e85d14]/40"
                   : "bg-white text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:text-[#e85d14]"
               }`}
             >
               <i className="fas fa-calendar-alt text-[10px]"></i>
-              <span>{fpState.year}</span>
+              <span>{fpState.year === "all" ? "Year" : fpState.year}</span>
               <i className={`fas fa-chevron-down text-[9px] transition-transform duration-200 ${curModal === "year" ? "rotate-180" : ""}`}></i>
             </button>
 
@@ -594,6 +637,24 @@ export default function GalleryPage() {
               <i className={`fas fa-chevron-down text-[9px] transition-transform duration-200 ${curModal === "event" ? "rotate-180" : ""}`}></i>
             </button>
 
+            {/* Department — optional filter, only shown when backend has department data */}
+            {departments.length > 0 && (
+              <button
+                onClick={() => openModal("department")}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-[12px] font-semibold transition-all duration-150 ${
+                  curModal === "department"
+                    ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm"
+                    : fpState.department !== "all"
+                    ? "bg-orange-50 text-[#e85d14] border-[#e85d14]/40"
+                    : "bg-white text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:text-[#e85d14]"
+                }`}
+              >
+                <i className="fas fa-building text-[10px]"></i>
+                <span>{fpState.department === "all" ? "Department" : fpState.department}</span>
+                <i className={`fas fa-chevron-down text-[9px] transition-transform duration-200 ${curModal === "department" ? "rotate-180" : ""}`}></i>
+              </button>
+            )}
+
             {/* Clear all */}
             {hasActiveFilters && (
               <button
@@ -615,16 +676,34 @@ export default function GalleryPage() {
               {/* Year picker */}
               {curModal === "year" && (
                 <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-2">
+                  <button
+                    onClick={() => setFpTmp((t) => ({ ...t, year: "all" }))}
+                    className={`rounded-xl py-3 px-2 text-center text-[13px] font-bold border transition-all duration-150 ${
+                      fpTmp.year === "all"
+                        ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm scale-[1.03]"
+                        : "bg-gray-50 text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:bg-orange-50"
+                    }`}
+                  >
+                    All
+                    <div className="text-[10px] font-normal mt-0.5 opacity-60">
+                      {allAlbums.length} albums
+                    </div>
+                  </button>
                   {years.map((y) => (
                     <button
                       key={y}
                       onClick={() => setFpTmp((t) => ({ ...t, year: y }))}
-                      className={`rounded-xl py-3 px-2 text-center text-[13px] font-bold border transition-all duration-150 ${
+                      className={`relative rounded-xl py-3 px-2 text-center text-[13px] font-bold border transition-all duration-150 ${
                         fpTmp.year === y
                           ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm scale-[1.03]"
                           : "bg-gray-50 text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:bg-orange-50"
                       }`}
                     >
+                      {y === latestDataYear && (
+                        <span className="absolute -top-1.5 -right-1.5 bg-[#e85d14] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                          NEW
+                        </span>
+                      )}
                       {y}
                       <div className="text-[10px] font-normal mt-0.5 opacity-60">
                         {allAlbums.filter((d) => d.year === y).length} albums
@@ -692,6 +771,43 @@ export default function GalleryPage() {
                 </div>
               )}
 
+              {/* Department picker */}
+              {curModal === "department" && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                  <button
+                    onClick={() => setFpTmp((t) => ({ ...t, department: "all" }))}
+                    className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl border text-[12px] font-semibold transition-all duration-150 ${
+                      fpTmp.department === "all"
+                        ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm"
+                        : "bg-gray-50 text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:bg-orange-50"
+                    }`}
+                  >
+                    <span className="text-[16px] leading-none">🏠</span>
+                    <div className="text-left min-w-0">
+                      <div className="text-[12px] font-bold leading-tight truncate">All Departments</div>
+                      <div className="text-[10px] opacity-60 mt-0.5">{countDept("all", fpTmp.year)} albums</div>
+                    </div>
+                  </button>
+                  {departments.map((code) => (
+                    <button
+                      key={code}
+                      onClick={() => setFpTmp((t) => ({ ...t, department: code }))}
+                      className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl border text-[12px] font-semibold transition-all duration-150 ${
+                        fpTmp.department === code
+                          ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm"
+                          : "bg-gray-50 text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:bg-orange-50"
+                      }`}
+                    >
+                      <span className="text-[16px] leading-none">🏛️</span>
+                      <div className="text-left min-w-0">
+                        <div className="text-[12px] font-bold leading-tight truncate">{code}</div>
+                        <div className="text-[10px] opacity-60 mt-0.5">{countDept(code, fpTmp.year)} albums</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Action row */}
               <div className="flex gap-2 mt-5 justify-end border-t border-gray-100 pt-4">
                 <button
@@ -716,13 +832,13 @@ export default function GalleryPage() {
       <section className="py-10 px-5 bg-[#f8f9fc] min-h-[400px]">
         <div className="max-w-[1280px] mx-auto">
           {loading ? (
-            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[1,2,3,4,5,6,7,8].map((i) => (
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {[1,2,3,4,5,6,7,8,9,10].map((i) => (
                 <div key={i} className="rounded-2xl overflow-hidden bg-white border border-gray-100 animate-pulse">
-                  <div className="h-[210px] bg-gray-100" />
-                  <div className="p-4 flex flex-col gap-2.5">
-                    <div className="h-2.5 bg-gray-100 rounded-full w-2/3" />
-                    <div className="h-2.5 bg-gray-100 rounded-full w-1/2" />
+                  <div className="h-[150px] bg-gray-100" />
+                  <div className="p-2.5 flex flex-col gap-2">
+                    <div className="h-2 bg-gray-100 rounded-full w-2/3" />
+                    <div className="h-2 bg-gray-100 rounded-full w-1/2" />
                   </div>
                 </div>
               ))}
@@ -750,15 +866,70 @@ export default function GalleryPage() {
               </button>
             </div>
           ) : (
-            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {visible.map((album) => (
-                <AlbumCard
-                  key={album.id}
-                  album={album}
-                  onClick={() => handleOpenAlbum(album)}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {pageItems.map((album) => (
+                  <AlbumCard
+                    key={album.id}
+                    album={album}
+                    onClick={() => handleOpenAlbum(album)}
+                  />
+                ))}
+              </div>
+
+              {/* ── Pagination (1, 2, 3 …) ── */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 mt-9 flex-wrap">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-[#0b1730] flex items-center justify-center text-[12px] disabled:opacity-30 disabled:cursor-not-allowed hover:border-[#e85d14] hover:text-[#e85d14] transition-colors"
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (n) =>
+                        n === 1 ||
+                        n === totalPages ||
+                        Math.abs(n - safePage) <= 1
+                    )
+                    .reduce<(number | "ellipsis")[]>((acc, n, idx, arr) => {
+                      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                      acc.push(n);
+                      return acc;
+                    }, [])
+                    .map((n, idx) =>
+                      n === "ellipsis" ? (
+                        <span key={`e-${idx}`} className="w-9 h-9 flex items-center justify-center text-[12px] text-gray-300">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={n}
+                          onClick={() => setPage(n)}
+                          className={`w-9 h-9 rounded-xl border text-[12px] font-bold transition-all duration-150 ${
+                            n === safePage
+                              ? "bg-[#e85d14] text-white border-[#e85d14] shadow-sm"
+                              : "bg-white text-[#0b1730] border-gray-200 hover:border-[#e85d14] hover:text-[#e85d14]"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-[#0b1730] flex items-center justify-center text-[12px] disabled:opacity-30 disabled:cursor-not-allowed hover:border-[#e85d14] hover:text-[#e85d14] transition-colors"
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>

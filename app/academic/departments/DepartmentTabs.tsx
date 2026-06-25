@@ -22,6 +22,8 @@ interface CourseSummary {
   image?: string | null;
   level?: string;
   duration?: string;
+  description?: string | null;
+  department_id?: number | null; // ← add பண்ணு
 }
 
 interface GalleryItem {

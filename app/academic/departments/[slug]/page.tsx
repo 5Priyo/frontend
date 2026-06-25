@@ -35,6 +35,8 @@ interface CourseSummary {
   image?: string | null;
   level?: string;
   duration?: string;
+  description?: string | null;
+   department_id?: number | null;  // ← add this
 }
 
 interface GalleryItem {
@@ -106,8 +108,23 @@ async function getDepartmentResearch(departmentId: number): Promise<Research[]> 
     );
     if (!res.ok) return [];
     const json = await res.json();
-    // handles { researches: { data: [...] } } shape
     return json?.researches?.data ?? json?.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function getDepartmentCourses(departmentId: number): Promise<CourseSummary[]> {
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/courses?department_id=${departmentId}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const all: CourseSummary[] = json?.data?.courses ?? [];
+    // backend filter வேலை செய்யலன்னா frontend-ல filter பண்றோம்
+    return all.filter((c) => c.department_id === departmentId);
   } catch {
     return [];
   }
@@ -122,8 +139,10 @@ export default async function DepartmentDetailPage({
   const dept = await getDepartment(slug);
   if (!dept) return notFound();
 
-  // Fetch full research details separately
-  const research = await getDepartmentResearch(dept.id);
+  const [research, courses] = await Promise.all([
+    getDepartmentResearch(dept.id),
+    getDepartmentCourses(dept.id),
+  ]);
 
   const isEng = dept.is_engineering;
   const categoryLabel = isEng ? "Engineering" : "Non-Engineering";
@@ -178,12 +197,12 @@ export default async function DepartmentDetailPage({
         </div>
       </div>
 
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-10">
         {/* Description */}
         {dept.description && (
           <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6">
             <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-3">
-            Description
+              Description
             </div>
             <p className="text-[#4b5563] text-[15px] leading-7">
               {dept.description}
@@ -194,7 +213,7 @@ export default async function DepartmentDetailPage({
         {/* Tabs Section */}
         <DepartmentTabs
           staff={dept.staff ?? []}
-          courses={dept.courses ?? []}
+          courses={courses}
           gallery={dept.gallery ?? []}
           research={research}
           apiBase={API_BASE}

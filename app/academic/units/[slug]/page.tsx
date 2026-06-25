@@ -68,7 +68,6 @@ async function getDepartment(slug: string): Promise<Department | null> {
   }
 }
 
-// resolves whether an image path is already a full URL or needs the storage prefix
 function resolveImageUrl(path: string | null): string | null {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
@@ -92,10 +91,10 @@ export default async function UnitDetailPage({
   const logoUrl = resolveImageUrl(unit.logo);
 
   return (
-    <>
-      {/* Banner */}
+    <div className="min-h-screen bg-[#f1f5f9]">
+      {/* Banner — full width, no side gaps */}
       <div
-        className="relative text-center py-16 px-6 overflow-hidden"
+        className="w-full text-center py-12 px-6"
         style={
           bannerUrl
             ? {
@@ -109,58 +108,51 @@ export default async function UnitDetailPage({
               }
         }
       >
-        <div className="relative z-10">
-          <div className="text-[13px] text-white/65 mb-3">
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
-            <span className="mx-1.5">›</span>
-            <Link href="/academic" className="hover:text-white transition-colors">Academic</Link>
-            <span className="mx-1.5">›</span>
-            <span className="text-white">{unit.name}</span>
-          </div>
-
-          <div className="w-[60px] h-[60px] rounded-2xl bg-white/10 text-white flex items-center justify-center text-[26px] mx-auto mb-4 overflow-hidden">
-            {logoUrl ? (
-              <img src={logoUrl} alt={unit.name} className="w-full h-full object-contain p-1" />
-            ) : (
-              <i className={`fas ${icon}`}></i>
-            )}
-          </div>
-
-          <span className="inline-block bg-white/15 text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-widest uppercase mb-3">
-            {unit.short_code}
-          </span>
-
-          <h1 className="text-white font-bold" style={{ fontSize: "clamp(24px,4vw,38px)" }}>
-            {unit.name}
-          </h1>
-          <p className="text-white/70 text-[14px] max-w-[500px] mx-auto mt-3 leading-[1.6]">
-            {unit.short_description}
-          </p>
+        {/* Breadcrumb */}
+        <div className="text-[13px] text-white/65 mb-3">
+          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <span className="mx-1.5">›</span>
+          <Link href="/academic" className="hover:text-white transition-colors">Academic</Link>
+          <span className="mx-1.5">›</span>
+          <span className="text-white">{unit.name}</span>
         </div>
+
+        {/* Icon / Logo */}
+        <div className="w-[60px] h-[60px] rounded-2xl bg-white/10 text-white flex items-center justify-center text-[26px] mx-auto mb-4 overflow-hidden">
+          {logoUrl ? (
+            <img src={logoUrl} alt={unit.name} className="w-full h-full object-contain p-1" />
+          ) : (
+            <i className={`fas ${icon}`}></i>
+          )}
+        </div>
+
+        <span className="inline-block bg-white/15 text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-widest uppercase mb-3">
+          {unit.short_code}
+        </span>
+
+        <h1 className="text-white font-bold" style={{ fontSize: "clamp(24px,4vw,38px)" }}>
+          {unit.name}
+        </h1>
+        <p className="text-white/70 text-[14px] max-w-[500px] mx-auto mt-3 leading-[1.6]">
+          {unit.short_description}
+        </p>
       </div>
 
       {/* Content */}
-      <main className="max-w-[900px] mx-auto px-6 py-16">
+      <main className="w-full max-w-[1350px] mx-auto px-4 py-10">
 
         {/* Overview */}
         <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
           <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-3">
-            Overview
+           Description
           </div>
           <p className="text-[#4b5563] text-[15px] leading-7">
             {unit.description || unit.short_description}
           </p>
-          <div className="mt-6 flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide">
-              Short Code:
-            </span>
-            <span className="bg-[#eff6ff] text-[#2563b0] text-[12px] font-bold px-3 py-1 rounded-full">
-              {unit.short_code}
-            </span>
-          </div>
+          
         </div>
 
-        {/* Vision / Mission (only if present) */}
+        {/* Vision / Mission */}
         {(unit.vision || unit.mission) && (
           <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm grid sm:grid-cols-2 gap-6">
             {unit.vision && (
@@ -182,7 +174,7 @@ export default async function UnitDetailPage({
           </div>
         )}
 
-        {/* Gallery - drag-to-scroll carousel */}
+        {/* Gallery */}
         {gallery.length > 0 && (
           <div className="bg-white rounded-[14px] border border-[#e5eaf3] p-8 mb-6 shadow-sm">
             <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-5">
@@ -198,7 +190,7 @@ export default async function UnitDetailPage({
             <div className="text-[12px] font-semibold tracking-[0.1em] uppercase text-[#2563b0] mb-5">
               <i className="fas fa-users mr-1.5"></i> Staff Members
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {staff.map((member) => (
                 <div
                   key={member.id}
@@ -206,7 +198,7 @@ export default async function UnitDetailPage({
                 >
                   <div className="w-[56px] h-[56px] rounded-full overflow-hidden bg-[#eff6ff] text-[#2563b0] flex items-center justify-center text-[20px] font-semibold shrink-0">
                     {member.photo ? (
-                      <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
+                      <img src={resolveImageUrl(member.photo) ?? ""} alt={member.name} className="w-full h-full object-cover" />
                     ) : (
                       member.name.charAt(0)
                     )}
@@ -250,6 +242,6 @@ export default async function UnitDetailPage({
           <i className="fas fa-arrow-left text-[12px]"></i> Back to Academic
         </Link>
       </main>
-    </>
+    </div>
   );
 }
