@@ -12,13 +12,25 @@ const API_BASE = `${ORIGIN}/api`;
 
 async function getCourses() {
   try {
-    // no-store: navbar must always reflect the latest backend data —
-    // a 1hr revalidate cache meant newly added courses wouldn't show
-    // up until the cache expired.
     const res = await fetch(`${API_BASE}/courses`, { cache: "no-store" });
     if (!res.ok) return [];
     const payload = await res.json();
     return payload?.data?.courses ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function getDepartments() {
+  try {
+    const res = await fetch(`${API_BASE}/departments`, { cache: "no-store" });
+    if (!res.ok) return [];
+    const payload = await res.json();
+
+    // DEBUG — `npm run dev` terminal-ல் shape பாருங்க, fix ஆனா remove பண்ணுங்க
+    console.log("DEPT RAW:", JSON.stringify(payload).slice(0, 600));
+
+    return payload?.data?.departments ?? payload?.data ?? [];
   } catch {
     return [];
   }
@@ -37,7 +49,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const courses = await getCourses();
+  const [courses, departments] = await Promise.all([
+    getCourses(),
+    getDepartments(),
+  ]);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -48,7 +63,7 @@ export default async function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className={`${inter.className} bg-[#f8f9fc] min-h-screen`}>
-        <Navbar courses={courses} />
+        <Navbar courses={courses} departments={departments} />
         <main>{children}</main>
         <Footer />
       </body>

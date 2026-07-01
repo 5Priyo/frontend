@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -59,8 +59,8 @@ interface StaffMember {
     slug: string;
     name: string;
     position: string;
-    category: string;
-    subcategory: string;
+    category: string;       // "academics" | "non-academic" | "director" | "head-of-division"
+    subcategory: string | null; // raw string from backend, e.g. "Former Director", "Admin Office"
     image: string;
     email?: string;
     phone?: string;
@@ -69,7 +69,7 @@ interface StaffMember {
     units: Unit[];
 }
 
-// ===== FILTER DEFINITIONS =====
+// ===== STATIC FILTER DEFINITIONS =====
 const categoryFilters = [
     { id: "all", label: "All Staff", icon: Users },
     { id: "director", label: "Director", icon: Briefcase },
@@ -91,21 +91,32 @@ const academicSubFilters = [
     { id: "MT", label: "MT", icon: Bot },
 ];
 
-const nonAcademicSubFilters = [
-    { id: "all", label: "All", icon: Users },
-    { id: "administrative", label: "Administrative Branch", icon: Building2 },
-    { id: "finance", label: "Finance Branch", icon: DollarSign },
-    { id: "library", label: "Library", icon: BookOpen },
-];
+// Fallback icons cycled for dynamically-discovered non-academic subcategories
+const dynamicIconPool = [Building2, DollarSign, BookOpen, Settings, Briefcase, Award];
+
+// Helper: normalize "Former Director" style subcategory into a director check
+function isFormerDirector(m: StaffMember) {
+    return (
+        m.category === "director" && m.subcategory?.toLowerCase() === "former"
+    ) || m.subcategory?.toLowerCase() === "former director";
+}
+
+function isCurrentDirector(m: StaffMember) {
+    return (
+        (m.category === "director" &&
+            (m.subcategory?.toLowerCase() === "current" || !m.subcategory)) &&
+        !isFormerDirector(m)
+    );
+}
 
 function getBadge(member: StaffMember) {
-    if (member.category === "director" && member.subcategory === "former") {
+    if (isFormerDirector(member)) {
         return {
             label: "Former Director",
             className: "bg-[#0b1730]/5 text-[#5a6380] border border-gray-200",
         };
     }
-    if (member.category === "director") {
+    if (isCurrentDirector(member)) {
         return {
             label: "Director",
             className: "bg-[#e85d14] text-white border border-[#e85d14]",
@@ -118,7 +129,6 @@ function getBadge(member: StaffMember) {
         };
     }
     if (member.category === "academics") {
-        // Show first department short_code as badge label if available
         const deptCode = member.departments?.[0]?.short_code;
         return {
             label: deptCode ? `Academic · ${deptCode}` : "Academic",
@@ -148,7 +158,8 @@ function normalizeStaffResponse(json: unknown): StaffMember[] {
             name: item.name ?? "",
             position: item.position ?? "",
             category: item.category ?? "",
-            subcategory: item.subcategory ?? "all",
+            // IMPORTANT: keep the raw backend value, don't default to "all"
+            subcategory: item.subcategory ?? null,
             image: resolveImage(item.photo),
             email: item.email ?? undefined,
             phone: item.phone ?? undefined,
@@ -175,6 +186,7 @@ export default function StaffPage() {
             try {
                 const res = await fetch(`${API_URL}/staffs?per_page=1000`, {
                     headers: { Accept: "application/json" },
+                    cache: "no-store",
                 });
                 if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
                 const json = await res.json();
@@ -190,6 +202,34 @@ export default function StaffPage() {
         fetchStaff();
         return () => { cancelled = true; };
     }, []);
+
+    // ── DYNAMICALLY DERIVE NON-ACADEMIC SUB-FILTERS FROM ACTUAL DATA ──
+    // Instead of hardcoding "administrative" / "finance" / "assistant-librarian"
+    // (which never matched backend subcategory strings like "Admin Office"),
+    // we build the filter list from whatever subcategory values actually exist.
+    const nonAcademicSubFilters = useMemo(() => {
+        const unique = Array.from(
+            new Set(
+                staffMembers
+                    .filter(
+                        (m) =>
+                            m.category === "non-academic" &&
+                            m.subcategory &&
+                            m.subcategory.trim() !== ""
+                    )
+                    .map((m) => m.subcategory as string)
+            )
+        ).sort();
+
+        return [
+            { id: "all", label: "All", icon: Users },
+            ...unique.map((sub, idx) => ({
+                id: sub, // use the EXACT backend string as the id, so matching is trivial
+                label: sub,
+                icon: dynamicIconPool[idx % dynamicIconPool.length],
+            })),
+        ];
+    }, [staffMembers]);
 
     function selectCategory(id: string) {
         setActiveCategory(id);
@@ -209,7 +249,7 @@ export default function StaffPage() {
             if (!hasDept) return false;
         }
 
-        // Sub-filter for non-academic → match by subcategory (administrative / finance / library)
+        // Sub-filter for non-academic → match exact subcategory string from backend
         if (activeCategory === "non-academic" && activeSub !== "all") {
             if (m.subcategory !== activeSub) return false;
         }
@@ -217,13 +257,11 @@ export default function StaffPage() {
         return true;
     });
 
-    const currentDirectors = filtered.filter(
-        (m) => m.category === "director" && m.subcategory === "current"
-    );
-    const formerDirectors = filtered.filter(
-        (m) => m.category === "director" && m.subcategory === "former"
-    );
-    const rest = filtered.filter((m) => m.category !== "director");
+    // Director detection now handles the case where "Former Director" arrives
+    // as category: "non-academic", subcategory: "Former Director" (as seen in the API sample)
+    const currentDirectors = filtered.filter(isCurrentDirector);
+    const formerDirectors = filtered.filter(isFormerDirector);
+    const rest = filtered.filter((m) => !isCurrentDirector(m) && !isFormerDirector(m));
 
     const showSubFilters =
         activeCategory === "academics" || activeCategory === "non-academic";
@@ -293,7 +331,7 @@ export default function StaffPage() {
                     </div>
 
                     {/* Sub Filters */}
-                    {showSubFilters && (
+                    {showSubFilters && subFilterList.length > 1 && (
                         <div className="flex flex-wrap justify-center gap-2 mb-12">
                             {subFilterList.map((sub) => {
                                 const Icon = sub.icon;

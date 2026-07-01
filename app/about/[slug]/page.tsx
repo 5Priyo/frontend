@@ -46,13 +46,7 @@ const pageMeta: Record<string, {
     description: "We honour the former Directors whose vision and dedication have shaped University College of Jaffna into the institution it is today.",
     filter: { position: "Former Director" },
   },
-  "assistant-director": {
-    title: "Assistant Director",
-    subtitle: "Deputy Academic Leadership",
-    icon: "fa-user-tie",
-    description: "The Assistant Director supports the Director in overseeing academic programmes, faculty coordination, and institutional development initiatives.",
-    filter: { position: "Assistant Director" },
-  },
+
   "assistant-registrar": {
     title: "Assistant Registrar",
     subtitle: "Administrative Support",
@@ -66,6 +60,13 @@ const pageMeta: Record<string, {
     icon: "fa-coins",
     description: "The Assistant Bursar supports the financial operations of University College of Jaffna, including fee collection, payroll coordination, and financial reporting.",
     filter: { position: "Assistant Bursar" },
+  },
+    "assistant-librarian": {
+    title: "Assistant Librarian",
+    subtitle: "Deputy Academic Leadership",
+    icon: "fa-user-tie",
+    description: "The Assistant Librarian supports the Director in overseeing academic programmes, faculty coordination, and institutional development initiatives.",
+    filter: { position: "Assistant Librarian" },
   },
 };
 

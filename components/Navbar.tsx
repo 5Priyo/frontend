@@ -12,11 +12,40 @@ interface Course {
   is_main?: boolean;
 }
 
-interface NavbarProps {
-  courses?: Course[];
+interface Department {
+  id: number;
+  name: string;
+  slug: string;
+  short_code: string;
+  is_engineering: boolean;
 }
 
-export default function Navbar({ courses = [] }: NavbarProps) {
+interface NavbarProps {
+  courses?: Course[];
+  departments?: Department[];
+}
+
+/** Backend-ல் சில departments "Department of X" ஆ இருக்கு, சில "X" மட்டும் —
+ *  navbar-ல் consistent short name காட்ட prefix strip பண்றோம். */
+function normalizeDeptName(name: string): string {
+  return name.replace(/^Department\s+of\s+/i, "").trim();
+}
+
+function getDeptIcon(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("building")) return "fa-tools";
+  if (lower.includes("construction")) return "fa-hard-hat";
+  if (lower.includes("mechatronics")) return "fa-robot";
+  if (lower.includes("farm")) return "fa-tractor";
+  if (lower.includes("production")) return "fa-industry";
+  if (lower.includes("food")) return "fa-flask";
+  if (lower.includes("hospitality")) return "fa-concierge-bell";
+  if (lower.includes("interdisciplinary")) return "fa-compass";
+  if (lower.includes("cosmetology")) return "fa-spa";
+  return "fa-graduation-cap";
+}
+
+export default function Navbar({ courses = [], departments = [] }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const toggle = (k: string) => setMobileExpanded(p => p === k ? null : k);
@@ -25,12 +54,49 @@ export default function Navbar({ courses = [] }: NavbarProps) {
   const closeNow = (key: string) => setClosedGroup(key);
   const resetClose = () => setClosedGroup(null);
 
-  // Only HND (main) courses belong in the "HND Courses" section.
-  // General ICT/English courses are linked separately via /courses/general.
   const hndCourses = courses.filter(c => c.is_main !== false);
+
+  // API object/paginated shape வந்தாலும் crash ஆகாம safe-ஆ handle பண்றோம்
+  const deptsArray: Department[] = Array.isArray(departments)
+    ? departments
+    : Array.isArray((departments as any)?.data)
+      ? (departments as any).data
+      : [];
+
+  const engDepts = deptsArray.filter(d => d.is_engineering);
+  const nonEngDepts = deptsArray.filter(d => !d.is_engineering);
 
   const di =
     "flex items-center gap-2 px-3 py-[9px] rounded text-[13px] font-medium text-[#3d4a6a] hover:bg-gray-100 hover:text-[#e85d14] transition-colors whitespace-nowrap";
+
+  // Mobile academic items — built from dynamic departments
+  const academicMobileItems = [
+    // Engineering header
+    ...(engDepts.length > 0
+      ? [{ icon: "fa-cogs", label: "Engineering", href: "#", isHeader: true }]
+      : []),
+    ...engDepts.map(d => ({
+      icon: getDeptIcon(d.name),
+      label: normalizeDeptName(d.name),
+      href: `/academic/departments/${d.slug}`,
+      isHeader: false,
+    })),
+    // Non-Engineering header
+    ...(nonEngDepts.length > 0
+      ? [{ icon: "fa-graduation-cap", label: "Non-Engineering", href: "#", isHeader: true }]
+      : []),
+    ...nonEngDepts.map(d => ({
+      icon: getDeptIcon(d.name),
+      label: normalizeDeptName(d.name),
+      href: `/academic/departments/${d.slug}`,
+      isHeader: false,
+    })),
+    // Units section
+    { icon: "fa-school", label: "Units", href: "/academic/units", isHeader: true },
+    { icon: "fa-graduation-cap", label: "HRDC Unit", href: "/academic/units/hrdc-unit", isHeader: false },
+    { icon: "fa-handshake", label: "Career Guidance Unit", href: "/academic/units/career-guidance-unit", isHeader: false },
+    { icon: "fa-users", label: "Staff Development Unit", href: "/academic/units/staff-development-unit", isHeader: false },
+  ];
 
   const mobileGroups = [
     {
@@ -41,32 +107,19 @@ export default function Navbar({ courses = [] }: NavbarProps) {
         { icon: "fa-bullseye", label: "Vision, Mission & History", href: "/about/vision-mission-history", isHeader: false },
         { icon: "fa-sitemap", label: "Board of Management", href: "/about/board-of-management", isHeader: false },
         { icon: "fa-book-open", label: "Board of Studies", href: "/about/board-of-studies", isHeader: false },
-        { icon: "fa-users", label: "Peoples", href: "/about/peoples", isHeader: true },
+        { icon: "fa-users", label: "Peoples", href: "/about/lead-roles", isHeader: true },
         { icon: "fa-user-tie", label: "Director", href: "/about/director", isHeader: false },
-        { icon: "fa-user-cog", label: "Assistant Director", href: "/about/assistant-director", isHeader: false },
+        { icon: "fa-history", label: "Former Director", href: "/about/former-director", isHeader: false },
         { icon: "fa-user-edit", label: "Assistant Registrar", href: "/about/assistant-registrar", isHeader: false },
         { icon: "fa-hand-holding-usd", label: "Assistant Bursar", href: "/about/assistant-bursar", isHeader: false },
-        { icon: "fa-history", label: "Former Director", href: "/about/former-director", isHeader: false },
+        { icon: "fa-user-cog", label: "Assistant Librarian", href: "/about/assistant-librarian", isHeader: false },
+       
       ],
     },
     {
       key: "academic",
       label: "Academic",
-      items: [
-        { icon: "fa-tools", label: "Building Services Technology", href: "/academic/departments/department-of-building-services-technology", isHeader: false },
-        { icon: "fa-hard-hat", label: "Construction Technology", href: "/academic/departments/department-of-construction-technology", isHeader: false },
-        { icon: "fa-robot", label: "Mechatronics Technology", href: "/academic/departments/department-of-mechatronics-technology", isHeader: false },
-        { icon: "fa-tractor", label: "Farm Machinery", href: "/academic/departments/department-of-farm-machinery", isHeader: false },
-        { icon: "fa-industry", label: "Production Technology", href: "/academic/departments/department-of-production-technology", isHeader: false },
-        { icon: "fa-flask", label: "Food Technology", href: "/academic/departments/department-of-food-technology", isHeader: false },
-        { icon: "fa-concierge-bell", label: "Hospitality Management", href: "/academic/departments/department-of-hospitality-management", isHeader: false },
-        { icon: "fa-compass", label: "Interdisciplinary", href: "/academic/departments/department-of-interdisciplinary", isHeader: false },
-        { icon: "fa-spa", label: "Cosmetology", href: "/academic/departments/department-of-cosmetology", isHeader: false },
-        { icon: "fa-school", label: "Units", href: "/academic/units", isHeader: true },
-        { icon: "fa-graduation-cap", label: "HRDC Unit", href: "/academic/units/hrdc-unit", isHeader: false },
-        { icon: "fa-handshake", label: "Career Guidance Unit", href: "/academic/units/career-guidance-unit", isHeader: false },
-        { icon: "fa-users", label: "Staff Development Unit", href: "/academic/units/staff-development-unit", isHeader: false },
-      ],
+      items: academicMobileItems,
     },
     {
       key: "courses",
@@ -89,7 +142,7 @@ export default function Navbar({ courses = [] }: NavbarProps) {
       items: [
         { icon: "fa-building", label: "Director Office", href: "/administration/director-office", isHeader: false },
         { icon: "fa-briefcase", label: "Admin Office", href: "/administration/admin-office", isHeader: false },
-        { icon: "fa-hand-holding-usd", label: "Finance and Accounts", href: "/administration/finance-accounts", isHeader: false },
+        { icon: "fa-hand-holding-usd", label: "Finance", href: "/administration/finance", isHeader: false },
         { icon: "fa-user-plus", label: "Admissions", href: "/student-services/admissions", isHeader: false },
         { icon: "fa-clipboard-list", label: "Examination", href: "/student-services/examinations", isHeader: false },
       ],
@@ -180,15 +233,15 @@ export default function Navbar({ courses = [] }: NavbarProps) {
                   <div className="flex-1 p-4">
                     <div className="mega-col-header">
                       <i className="fas fa-users text-[#e85d14]" />
-                      Peoples
+                      Lead Roles
                     </div>
                     <Link href="/about/director" onClick={() => closeNow("about")} className={di}>
                       <i className="fas fa-user-tie text-gray-400 w-[18px] text-center" />
                       Director
                     </Link>
-                    <Link href="/about/assistant-director" onClick={() => closeNow("about")} className={di}>
-                      <i className="fas fa-user-cog text-gray-400 w-[18px] text-center" />
-                      Assistant Director
+                    <Link href="/about/former-director" onClick={() => closeNow("about")} className={di}>
+                      <i className="fas fa-history text-gray-400 w-[18px] text-center" />
+                      Former Director
                     </Link>
                     <Link href="/about/assistant-registrar" onClick={() => closeNow("about")} className={di}>
                       <i className="fas fa-user-edit text-gray-400 w-[18px] text-center" />
@@ -198,16 +251,17 @@ export default function Navbar({ courses = [] }: NavbarProps) {
                       <i className="fas fa-hand-holding-usd text-gray-400 w-[18px] text-center" />
                       Assistant Bursar
                     </Link>
-                    <Link href="/about/former-director" onClick={() => closeNow("about")} className={di}>
-                      <i className="fas fa-history text-gray-400 w-[18px] text-center" />
-                      Former Director
+                      <Link href="/about/assistant-librarian" onClick={() => closeNow("about")} className={di}>
+                      <i className="fas fa-user-cog text-gray-400 w-[18px] text-center" />
+                     Assistant Librarian
                     </Link>
+                    
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ACADEMIC */}
+            {/* ACADEMIC — dynamic departments */}
             <div className="nav-group" onMouseLeave={resetClose}>
               <Link href="/academic" className="nav-plain">
                 Academic <i className="fas fa-chevron-down text-[10px]" />
@@ -221,43 +275,63 @@ export default function Navbar({ courses = [] }: NavbarProps) {
                     <div className="mega-col-header">
                       <i className="fas fa-building text-[#e85d14]" /> Departments
                     </div>
-                    <div className="text-[11px] font-semibold uppercase text-[#185FA5] flex items-center gap-1 px-3 py-1">
-                      <i className="fas fa-cogs" /> Engineering
-                    </div>
-                    {[
-                      { icon: "fa-tools", label: "Building Services Technology", href: "/academic/departments/department-of-building-services-technology" },
-                      { icon: "fa-hard-hat", label: "Construction Technology", href: "/academic/departments/department-of-construction-technology" },
-                      { icon: "fa-robot", label: "Mechatronics Technology", href: "/academic/departments/department-of-mechatronics-technology" },
-                      { icon: "fa-tractor", label: "Farm Machinery", href: "/academic/departments/department-of-farm-machinery" },
-                      { icon: "fa-industry", label: "Production Technology", href: "/academic/departments/department-of-production-technology" },
-                    ].map(item => (
-                      <Link key={item.label} href={item.href} onClick={() => closeNow("academic")} className={di}>
-                        <i className={`fas ${item.icon} text-gray-400 w-[18px] text-center`} /> {item.label}
-                      </Link>
-                    ))}
-                    <div className="my-1.5 mx-3 border-t border-gray-200" />
-                    <div className="text-[11px] font-semibold uppercase text-[#3B6D11] flex items-center gap-1 px-3 py-1">
-                      <i className="fas fa-graduation-cap" /> Non-Engineering
-                    </div>
-                    {[
-                      { icon: "fa-flask", label: "Food Technology", href: "/academic/departments/department-of-food-technology" },
-                      { icon: "fa-concierge-bell", label: "Hospitality Management", href: "/academic/departments/department-of-hospitality-management" },
-                      { icon: "fa-compass", label: "Interdisciplinary", href: "/academic/departments/department-of-interdisciplinary" },
-                      { icon: "fa-spa", label: "Cosmetology", href: "/academic/departments/department-of-cosmetology" },
-                    ].map(item => (
-                      <Link key={item.label} href={item.href} onClick={() => closeNow("academic")} className={di}>
-                        <i className={`fas ${item.icon} text-gray-400 w-[18px] text-center`} /> {item.label}
-                      </Link>
-                    ))}
+
+                    {/* Engineering */}
+                    {engDepts.length > 0 && (
+                      <>
+                        <div className="text-[11px] font-semibold uppercase text-[#185FA5] flex items-center gap-1 px-3 py-1">
+                          <i className="fas fa-cogs" /> Engineering
+                        </div>
+                        {engDepts.map(dept => (
+                          <Link
+                            key={dept.id}
+                            href={`/academic/departments/${dept.slug}`}
+                            onClick={() => closeNow("academic")}
+                            className={di}
+                          >
+                            <i className={`fas ${getDeptIcon(dept.name)} text-gray-400 w-[18px] text-center`} />
+                            {normalizeDeptName(dept.name)}
+                          </Link>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Non-Engineering */}
+                    {nonEngDepts.length > 0 && (
+                      <>
+                        <div className="my-1.5 mx-3 border-t border-gray-200" />
+                        <div className="text-[11px] font-semibold uppercase text-[#3B6D11] flex items-center gap-1 px-3 py-1">
+                          <i className="fas fa-graduation-cap" /> Non-Engineering
+                        </div>
+                        {nonEngDepts.map(dept => (
+                          <Link
+                            key={dept.id}
+                            href={`/academic/departments/${dept.slug}`}
+                            onClick={() => closeNow("academic")}
+                            className={di}
+                          >
+                            <i className={`fas ${getDeptIcon(dept.name)} text-gray-400 w-[18px] text-center`} />
+                            {normalizeDeptName(dept.name)}
+                          </Link>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Fallback: no departments from API yet */}
+                    {departments.length === 0 && (
+                      <p className="text-[12px] text-gray-400 px-3 py-2">Loading...</p>
+                    )}
                   </div>
+
                   <div className="flex-1 p-4">
                     <div className="mega-col-header">
                       <i className="fas fa-school text-[#e85d14]" /> Units
                     </div>
                     {[
-                      { icon: "fa-graduation-cap", label: "HRDC Unit", href: "/academic/units/hrdc-unit" },
+                      
                       { icon: "fa-handshake", label: "Career Guidance Unit", href: "/academic/units/career-guidance-unit" },
                       { icon: "fa-users", label: "Staff Development Unit", href: "/academic/units/staff-development-unit" },
+                      { icon: "fa-graduation-cap", label: "HRDC Unit", href: "/academic/units/hrdc-unit" },
                     ].map(item => (
                       <Link key={item.label} href={item.href} onClick={() => closeNow("academic")} className={di}>
                         <i className={`fas ${item.icon} text-gray-400 w-[18px] text-center`} /> {item.label}
@@ -268,7 +342,7 @@ export default function Navbar({ courses = [] }: NavbarProps) {
               </div>
             </div>
 
-            {/* COURSES — dynamic from API, HND only */}
+            {/* COURSES */}
             <div className="nav-group" onMouseLeave={resetClose}>
               <Link href="/courses" className="nav-plain">
                 Courses <i className="fas fa-chevron-down text-[10px]" />
@@ -322,7 +396,7 @@ export default function Navbar({ courses = [] }: NavbarProps) {
                     {[
                       { icon: "fa-building", label: "Director Office", href: "/administration/director-office" },
                       { icon: "fa-briefcase", label: "Admin Office", href: "/administration/admin-office" },
-                      { icon: "fa-hand-holding-usd", label: "Finance and Accounts", href: "/administration/finance-accounts" },
+                      { icon: "fa-hand-holding-usd", label: "Finance", href: "/administration/finance" },
                     ].map(item => (
                       <Link key={item.label} href={item.href} onClick={() => closeNow("administration")} className={di}>
                         <i className={`fas ${item.icon} text-gray-400 w-[18px] text-center`} /> {item.label}

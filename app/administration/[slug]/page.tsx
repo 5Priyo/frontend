@@ -16,7 +16,7 @@ const management: Record<string, {
   "director-office": {
     icon: "fa-landmark",
     title: "Director Office",
-    subtitle: "University of Jaffna — Strategic Leadership",
+    subtitle: "University college of Jaffna — Strategic Leadership",
     info: [
       { label: "Department", value: "Director's Office" },
       { label: "Location", value: "No 29 Brown Road, Kokuvil East, Jaffna" },
@@ -30,17 +30,17 @@ const management: Record<string, {
       "Strategic planning and development",
       "Faculty oversight and performance",
       "Policy implementation and compliance",
-      "Liaison with University of Jaffna",
+      "Liaison with University college of Jaffna",
       "Community and stakeholder engagement",
     ],
-    external_url: "https://www.jfn.ac.lk/unit/office-of-the-vice-chancellor/",
-    external_label: "Visit University of Jaffna",
+    external_url: "https://",
+    external_label: "Visit University collge of Jaffna",
     positionKeyword: "Director",
   },
   "admin-office": {
     icon: "fa-pen-nib",
     title: "Admin Office",
-    subtitle: "University of Jaffna — Administrative Operations",
+    subtitle: "University college of Jaffna — Administrative Operations",
     info: [
       { label: "Department", value: "Administrative Office" },
       { label: "Location", value: "No 29 Brown Road, Kokuvil East, Jaffna" },
@@ -61,18 +61,18 @@ const management: Record<string, {
     external_label: "Visit Registrar's Office",
     positionKeyword: "Admin Office",
   },
-  "finance-accounts": {
+  "finance": {
     icon: "fa-coins",
-    title: "Finance and Accounts",
-    subtitle: "University of Jaffna — Financial Management",
+    title: "Finance",
+    subtitle: "University college of Jaffna — Financial Management",
     info: [
-      { label: "Department", value: "Finance & Accounts" },
+      { label: "Department", value: "Finance" },
       { label: "Location", value: "No 29 Brown Road, Kokuvil East, Jaffna" },
       { label: "Office Hours", value: "Mon – Fri, 8:30 AM – 4:00 PM" },
       { label: "Contact", value: "+94 0212 217791" },
     ],
     description:
-      "The Finance and Accounts division is responsible for all financial operations at University College of Jaffna. This includes budget planning, expenditure monitoring, fee collection, payroll, and financial reporting — all conducted in accordance with the financial regulations of the University of Jaffna and the Government of Sri Lanka.",
+      "The Finance  division is responsible for all financial operations at University College of Jaffna. This includes budget planning, expenditure monitoring, fee collection, payroll, and financial reporting — all conducted in accordance with the financial regulations of the University of Jaffna and the Government of Sri Lanka.",
     responsibilities: [
       "Budget planning and allocation",
       "Student fee collection and records",
@@ -81,7 +81,7 @@ const management: Record<string, {
       "Procurement and asset management",
       "Grant and fund management",
     ],
-    external_url: "https://jfn.ac.lk/office-of-the-bursar/",
+    external_url: "https://",
     external_label: "Visit Bursar's Office",
     positionKeyword: "Finance",
   },
